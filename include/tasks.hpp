@@ -6,8 +6,9 @@
 class Task{
 public:
     
-    /// Repeat intenal loop periodicaly
-    void run(void* args);
+    /// Create task that runs periodicaly principal method @param name name of task
+    /// @param priority (optional) default 2, @param core (optinal) default 1
+    static void run(const char * name, uint8_t priority = 2, uint8_t core = 1);
 
     /// Ends Task
     void stop();
@@ -18,25 +19,28 @@ public:
     /// Getter method for required priority
     inline uint8_t priority();
 
-    /// Handler to task
-    TaskHandle_t handler;
-
 protected:
-    
+
     /// Used to stop loop
-    bool _running;
+    static bool _running;
 
     /// Repetition period in ticks
-    TickType_t _period;
+    static TickType_t _period;
 
     /// Task priotity
-    uint8_t _priority;
+    static uint8_t _priority;
 
     /// Required stack size
-    uint32_t _stackSize;
+    static uint32_t _stackSize;
+
+    /// Handler to task
+    static TaskHandle_t _handler;
 
     /// internal loop of managers
-    virtual void _loop();
+    static void _loop();
+
+    /// Repeat intenal loop periodicaly
+    static void _run(void* args);
 
 };
 

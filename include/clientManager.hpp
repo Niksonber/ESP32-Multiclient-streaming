@@ -25,7 +25,7 @@ public:
 protected:
 
     /// Check new clients
-    void _loop();
+    static void _loop();
 
     /// Add new users in the queue
     static void _registerUser();
