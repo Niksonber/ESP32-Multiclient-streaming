@@ -1,6 +1,6 @@
 #include "tasks.hpp"
 
-void Task::loop(){
+void Task::run(void* args){
     /// Last wakeup
     static TickType_t wakeUp = xTaskGetTickCount();
 
