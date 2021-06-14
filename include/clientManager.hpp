@@ -5,7 +5,7 @@
 #include "tasks.hpp"
 
 /// Manage a clients queue conections
-class ClientManager_: public Task{
+class ClientManager: public Task{
 public:
     /// Initialize server and routs, set internal as period of execution
     /// @param period repetition period in ms @param port (optional) server port - defaut 80
@@ -25,7 +25,7 @@ public:
 protected:
 
     /// Check new clients
-    static void _loop();
+    void _loop();
 
     /// Add new users in the queue
     static void _registerUser();
@@ -34,7 +34,6 @@ protected:
     WiFiClient * _curretClient;
 
     /// Server
-
     static WebServer _server;
 
     /// Queue of clients
