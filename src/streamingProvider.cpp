@@ -1,5 +1,10 @@
 #include "streamingProvider.hpp"
 
+StreamingProvider::StreamingProvider(){
+    for(uint8_t i = 0; i < PIPELINE_SIZE; i++)
+        _buffers[i] = (uint8_t *) malloc(_maxSize);
+}
+
 StreamingProvider::~StreamingProvider(){
     /// Desallocate memory
     for(auto buffer : _buffers)
@@ -14,6 +19,10 @@ void StreamingProvider::begin(uint8_t fps){
     
     /// Repetition period
     _period = pdMS_TO_TICKS(1000/fps);
+
+    /// Init semaphore
+    _semaphore = xSemaphoreCreateBinary();
+    release();
     
     /// Create task to Provider
     run("provider");
@@ -42,10 +51,11 @@ void StreamingProvider::_loop(){
     
     /// Check available space
     uint8_t * buf = _getPtr();
-    if(_sizes[writeIndex] <= _size){
+    if(_size <= _maxSize){
         _sizes[writeIndex] = _size;
     }else{
         _sizes[writeIndex] = _size;
+        _maxSize = _size;
         /// if cannot reallocate, do nothing
         if( !reallocate(writeIndex) )
             return;
@@ -65,16 +75,22 @@ void StreamingProvider::_loop(){
 
 
 uint8_t *StreamingProvider::_getPtr(){
+    static size_t maxSize;
     static uint8_t idx, *buf;
-    String filename = "/" + String(idx) + ".jpeg";
+    String filename = "/" + String(idx) + ".jpg";
     idx = (idx + 1) % 10; 
 
     File file = SPIFFS.open(filename);
     size_t size = file.size();
     
-    if (size > _size){
-        delete buf;
-        buf = new uint8_t[size];
+    if (size > maxSize && size < ESP.getFreeHeap()){
+        try{
+            delete[] buf;
+            buf = new uint8_t[size];
+            maxSize = size;
+        }catch( std::bad_alloc ){
+            size = maxSize;
+        }
     }
 
     _size = file.read(buf, size);
@@ -83,17 +99,17 @@ uint8_t *StreamingProvider::_getPtr(){
 
 bool StreamingProvider::reallocate(uint8_t idx){
     size_t availableHeap;
+    log_i("Realocating");
     /// delete previus allocated buffer
-    delete _buffers[idx];
-    availableHeap = ESP.getFreeHeap();
-
+    delete[] _buffers[idx];
     /// Check if there is available space in heap
-    if ( _sizes[idx] < availableHeap ){
+    try{
         _buffers[idx] = new uint8_t [_sizes[idx]];
-    }
-    /// Check if there is psram with suficient space then allocate
-    else if ( psramFound() && _sizes[idx] < ESP.getFreePsram() ){
-        _buffers[idx] = (uint8_t *) ps_malloc(_sizes[idx]);
+    }catch( std::bad_alloc ){
+        /// Check if there is psram with suficient space then allocate
+        if ( psramFound() && _sizes[idx] < ESP.getFreePsram() ){
+            _buffers[idx] = (uint8_t *) ps_malloc(_sizes[idx]);
+        }
     }
     return _buffers[idx] != nullptr;
 }

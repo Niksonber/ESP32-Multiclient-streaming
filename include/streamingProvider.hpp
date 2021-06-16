@@ -8,6 +8,9 @@
 /// Provides data in parallel (ensure it's integrity) to Streamer, i.e, contain 2 diferent buffers (while reading in one writes in other)
 class StreamingProvider: public Task{
 public:
+    /// Initialy alloc buffers  
+    StreamingProvider();
+    
     /// Delete all alocated buffers
     ~StreamingProvider();
 
@@ -40,8 +43,11 @@ protected:
     uint8_t * _buffers[PIPELINE_SIZE] = {nullptr};
     
     /// size of new content
-    size_t _size;
+    size_t _size = 0;
     
+    /// Maximum size
+    size_t _maxSize = 50000;
+
     /// Avoid interruptons in buffer cange
     portMUX_TYPE _mutex;
 
