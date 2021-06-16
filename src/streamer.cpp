@@ -10,9 +10,10 @@ void Streamer::begin(uint8_t fps){
 
 void Streamer::_loop(){
     UBaseType_t available = _clientManager.available();
+    _period = _totalPeriod;
     if ( available ){
         /// adjust the waiting time to serve all customers with the desired latency
-        _period = _totalPeriod/available;
+        _period /= available;
         if( _clientManager.next() ){
             _provider.waitAvailable();
             _clientManager.send(_provider.buffer(), _provider.size());
