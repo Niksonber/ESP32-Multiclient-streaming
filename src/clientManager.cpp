@@ -36,7 +36,7 @@ UBaseType_t ClientManager::available(){
 
 void ClientManager::send(uint8_t * buffer, size_t size){
     /// send buffer
-    _curretClient->printf("%s %u", CONTENT_TYPE, size);
+    _curretClient->printf("%s %u\r\n\r\n", CONTENT_TYPE, size);
     _curretClient->write((uint8_t*) buffer, size);
     _curretClient->print(BOUNDARY);
 
@@ -60,5 +60,6 @@ void ClientManager::_registerUser(){
 
         /// Add in client in queue
         xQueueSend(_clients, (void *) &client, 0);
+        log_i("Clients in queue: %d", uxQueueMessagesWaiting(_clients));
     }
 }
