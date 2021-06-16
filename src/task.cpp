@@ -9,14 +9,17 @@ void Task::run(const char * name, uint8_t priority, uint8_t core){
 void Task::_run(void* args){
     Task * task = static_cast<Task *>(args);
     /// Last wakeup
-    static TickType_t wakeUp = xTaskGetTickCount();
 
+    static TickType_t delay, wakeUp;
     while ( task->_running ){
+        wakeUp = xTaskGetTickCount();
         /// Call inner loop of sons
         task->_loop();
 
-        /// Ensure constant rate
+        /// Try ensure constant rate
         taskYIELD();
-        vTaskDelayUntil(&wakeUp, task->_period);
+        delay = task->_period - (xTaskGetTickCount() - wakeUp);
+        if(delay <= 0 || delay > task->_period) delay = task->_period;
+        vTaskDelay(delay);
     }
 }
