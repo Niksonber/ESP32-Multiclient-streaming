@@ -1,8 +1,10 @@
 #include "streamingProvider.hpp"
 
 StreamingProvider::StreamingProvider(){
-    for(uint8_t i = 0; i < PIPELINE_SIZE; i++)
+    for(uint8_t i = 0; i < PIPELINE_SIZE; i++){
         _buffers[i] = (uint8_t *) malloc(_maxSize);
+        _sizes[i] = 0;
+    }
 }
 
 StreamingProvider::~StreamingProvider(){
@@ -98,7 +100,6 @@ uint8_t *StreamingProvider::_getPtr(){
 }
 
 bool StreamingProvider::reallocate(uint8_t idx){
-    size_t availableHeap;
     log_i("Realocating");
     /// delete previus allocated buffer
     delete[] _buffers[idx];

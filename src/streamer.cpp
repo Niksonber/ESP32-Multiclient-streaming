@@ -3,7 +3,7 @@
 void Streamer::begin(uint8_t fps){
     _totalPeriod = pdMS_TO_TICKS(1000/fps);
     
-    _clientManager.begin(2000/fps);
+    _clientManager.begin(333/fps);
     _provider.begin(fps);
     run("streamer");
 }
