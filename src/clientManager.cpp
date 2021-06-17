@@ -1,11 +1,12 @@
 #include "clientManager.hpp"
 
-const char *ClientManager::ADDR = "/stream";
-const char *ClientManager::HEADER = "HTTP/1.1 200 OK\r\n" \
-                                     "Content-Type: multipart/x-mixed-replace;"\
-                                     "boundary = 99999999999999999999999\r\n";
-const char *ClientManager::BOUNDARY = "\r\n--99999999999999999999999\r\n";
-const char *ClientManager::CONTENT_TYPE = "Content-Type: image/jpeg\r\nContent-Length: ";
+const char *ClientManager::ADDR_STREAM = "/stream";
+const char *ClientManager::ADDR_SAMPLE = "/sample";
+const char *ClientManager::HEADER_OK = "HTTP/1.1 200 OK\r\n";
+const char *ClientManager::HEADER = "Content-Type: multipart/x-mixed-replace; " \
+                                    "boundary=9999999999999999999999";
+const char *ClientManager::BOUNDARY = "\r\n\r\n--9999999999999999999999\r\n";
+const char *ClientManager::CONTENT_TYPE = "Content-Type: image/jpeg\r\nContent-Length:";
 
 WebServer ClientManager::_server;
 QueueHandle_t ClientManager::_clients;
@@ -15,7 +16,10 @@ void ClientManager::begin(uint32_t period, uint16_t port){
     _period = pdMS_TO_TICKS(period);
     _clients = xQueueCreate(CLIENT_NUMBER, sizeof(WiFiClient*));
 
-    _server.on(ADDR, HTTP_GET, _registerUser);
+    _curretClient = nullptr;
+
+    _server.on(ADDR_STREAM, HTTP_GET, _registerStreamUser);
+    _server.on(ADDR_SAMPLE, HTTP_GET, _registerSampleUser);
 
     run("client");
 }
@@ -23,7 +27,8 @@ void ClientManager::begin(uint32_t period, uint16_t port){
 bool ClientManager::next(){
     /// recive next client
     xQueueReceive(_clients, (void *) &_curretClient, 0);
-    if ( ! _curretClient->connected() ){
+    if ( _curretClient != nullptr && ! _curretClient->client.connected() ){
+        log_i("Deleting client");
         delete _curretClient;
         return false;
     }
@@ -36,12 +41,19 @@ UBaseType_t ClientManager::available(){
 
 void ClientManager::send(uint8_t * buffer, size_t size){
     /// send buffer
-    _curretClient->printf("%s %u\r\n\r\n", CONTENT_TYPE, size);
-    _curretClient->write((uint8_t*) buffer, size);
-    _curretClient->print(BOUNDARY);
+    if ( _curretClient != nullptr && _curretClient->client.connected()){
+        _curretClient->client.printf("%s %u\r\n\r\n", CONTENT_TYPE, static_cast<uint32_t>(size));
+        _curretClient->client.write((uint8_t*) buffer, size);
+        if(_curretClient->stream){
+            _curretClient->client.print(BOUNDARY);
 
-    /// Put again client in the queue
-    xQueueSend(_clients, (void *) &_curretClient, 0);
+            /// Put again client in the queue
+            xQueueSend(_clients, (void *) &_curretClient, 0);
+            return;
+        }
+    }
+    delete _curretClient;
+    log_i("Client will not return to queue");
 }
 
 void ClientManager::_loop(){
@@ -49,17 +61,32 @@ void ClientManager::_loop(){
     _server.handleClient();
 }
 
-void ClientManager::_registerUser(){
+void ClientManager::_registerStreamUser(){
+    _registerUser();
+}
+
+void ClientManager::_registerSampleUser(){
+    _registerUser(false);
+}
+
+void ClientManager::_registerUser(bool stream){
     /// Check if There is still space available
     if ( uxQueueSpacesAvailable(_clients) ){
-        WiFiClient* client = new WiFiClient();
-        *client = _server.client();
+        try{
+            client_t * handler = new client_t;
+        
+            handler->stream = stream;
+            handler->client = _server.client();
 
-        /// Send streaming header
-        client->printf("%s%s", HEADER, BOUNDARY);
+            /// Send streaming header
+            handler->client.printf("%s", HEADER_OK);
+            if(stream) handler->client.printf("%s%s", HEADER, BOUNDARY);
 
-        /// Add in client in queue
-        xQueueSend(_clients, (void *) &client, 0);
-        log_i("Clients in queue: %d", uxQueueMessagesWaiting(_clients));
+            /// Add in client in queue
+            xQueueSend(_clients, (void *) &handler, 0);
+            log_i("Clients in queue: %d", uxQueueMessagesWaiting(_clients));
+        }catch(std::bad_alloc){
+            log_i("Fail allocaation of Client");
+        }
     }
 }

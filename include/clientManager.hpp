@@ -4,6 +4,12 @@
 
 #include "tasks.hpp"
 
+/// Struct used to reference client and your state indicating if wait stream or only one sample
+struct client_t {
+    WiFiClient client;
+    bool stream;
+};
+
 /// Manage a clients queue conections
 class ClientManager: public Task{
 public:
@@ -27,11 +33,17 @@ protected:
     /// Check new clients
     void _loop();
 
-    /// Add new users in the queue
-    static void _registerUser();
+    /// Add new users in the queue permanentily
+    static void _registerStreamUser();
+    
+    /// Add new users in the queue temporarily
+    static void _registerSampleUser();
+
+    /// Add new users in the queue @param stream if true the client returns to end of queue after reaching the top
+    static void _registerUser(bool stream = true);
     
     /// current client
-    WiFiClient * _curretClient;
+    client_t * _curretClient = nullptr;
 
     /// Server
     static WebServer _server;
@@ -40,7 +52,9 @@ protected:
     static QueueHandle_t _clients;
 
     /// constants
-    static const char *ADDR;
+    static const char *ADDR_STREAM;
+    static const char *ADDR_SAMPLE;
+    static const char *HEADER_OK;
     static const char *HEADER;
     static const char *BOUNDARY;
     static const char *CONTENT_TYPE;
