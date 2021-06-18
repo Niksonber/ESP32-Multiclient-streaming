@@ -16,7 +16,7 @@ public:
 
     /// Begin SPIFFS, set desired fps and create a task to get stream buffer
     /// @param fps Desired transmission rate
-    void begin(uint8_t fps);
+    virtual void begin(uint8_t fps);
 
     /// Wait until read loop is not over. This avoid partial read/corrupted image
     void waitAvailable();
@@ -32,6 +32,7 @@ public:
 
     /// Number of buffer, this allows that simultaneous read and write (in deferent buffers)
     static const uint8_t PIPELINE_SIZE = 2;
+
 protected:
     /// Index of actual reading buffer
     uint8_t _current = 0;
@@ -42,11 +43,8 @@ protected:
     /// Buffers
     uint8_t * _buffers[PIPELINE_SIZE] = {nullptr};
     
-    /// size of new content
-    size_t _size = 0;
-    
     /// Maximum size
-    size_t _maxSize = 50000;
+    size_t _maxSize = 0;
 
     /// Avoid interruptons in buffer cange
     portMUX_TYPE _mutex;
@@ -57,8 +55,12 @@ protected:
     /// Loop. Get new data, if necessary reallocate buffer
     void _loop();
     
-    /// Get ptr to new data. @return pointer to data
-    uint8_t *_getPtr();
+    /// Get pointer to new data and its size. @param ptr At end this variable points to buffer
+    /// @param size at end contains buffer size  @return true if buffer is sucessfully captured, false otherwise
+    virtual bool _getData(uint8_t ** ptr, size_t * size);
+    
+    /// Release data buffer to be replaced after reading
+    virtual void _releaseData(){};
 
     /// Reallocate buffer, if necessáry use psram
     /// @param index of buffer (in _buffers) @return true if sucessfully reallocate

@@ -48,55 +48,66 @@ size_t StreamingProvider::size(){
 }
 
 void StreamingProvider::_loop(){
+    size_t size;
+    uint8_t *buf;
     /// Write in different buffer
     uint8_t writeIndex = _current^1;
     
-    /// Check available space
-    uint8_t * buf = _getPtr();
-    if(_size <= _maxSize){
-        _sizes[writeIndex] = _size;
+    if ( _getData(&buf, &size) ){
+        /// Check available space
+        if ( size <= _maxSize ){
+            _sizes[writeIndex] = size;
+        }else{
+            _sizes[writeIndex] = size;
+            _maxSize = size;
+            /// if cannot reallocate, do nothing
+            if( !reallocate(writeIndex) )
+                return;
+        }
+        /// Copy content
+        log_i("Allocated: %d, cpy %d", _maxSize,_sizes[writeIndex]);
+        memcpy(_buffers[writeIndex], buf, _sizes[writeIndex]);
+        
+        /// Allows changes in data buffer
+        _releaseData();
+        
+        /// Wait if someone is reading readbuffer
+        waitAvailable();
+        portENTER_CRITICAL(&_mutex);
+        /// New data is ready
+        _current = writeIndex;
+        portEXIT_CRITICAL(&_mutex);
+        /// allow read
+        release();
     }else{
-        _sizes[writeIndex] = _size;
-        _maxSize = _size;
-        /// if cannot reallocate, do nothing
-        if( !reallocate(writeIndex) )
-            return;
+        log_e("Error get data buffer");
     }
-    /// Copy content
-    memcpy(_buffers[writeIndex], buf, _sizes[writeIndex]);
-    
-    /// Wait if someone is reading readbuffer
-    waitAvailable();
-    portENTER_CRITICAL(&_mutex);
-    /// New data is ready
-    _current = writeIndex;
-    portEXIT_CRITICAL(&_mutex);
-    /// allow read
-    release();
+
 }
 
 
-uint8_t *StreamingProvider::_getPtr(){
+bool StreamingProvider::_getData(uint8_t ** ptr, size_t * size){
+    static uint8_t idx;
     static size_t maxSize;
-    static uint8_t idx, *buf;
     String filename = "/" + String(idx) + ".jpg";
     idx = (idx + 1) % 10; 
 
     File file = SPIFFS.open(filename);
-    size_t size = file.size();
+    *size = file.size();
     
-    if (size > maxSize && size < ESP.getFreeHeap()){
+    if (*size > maxSize && *size < ESP.getFreeHeap()){
         try{
-            delete[] buf;
-            buf = new uint8_t[size];
-            maxSize = size;
+            delete[] (*ptr);
+            *ptr = new uint8_t[*size];
+            maxSize = *size;
         }catch( std::bad_alloc ){
-            size = maxSize;
+            *size = maxSize;
+            return false;
         }
     }
 
-    _size = file.read(buf, size);
-    return buf;
+    *size = file.read(*ptr, *size);
+    return *size != 0;
 }
 
 bool StreamingProvider::reallocate(uint8_t idx){
