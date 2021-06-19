@@ -9,7 +9,7 @@ public:
     /// Begin client manager and provider. That is inst internal variables and
     /// start 3 tasks: client manger (handler with clients queue), provider (get data) and streamer (send to all clients)
     /// @param fps Desired transmission rate 
-    void begin(uint8_t fps);
+    void begin(uint8_t fps, StreamingProvider * provider = nullptr);
 
 protected:
     /// Stream to all available clients. To do this adequade sleep time to number of clients
@@ -19,7 +19,7 @@ protected:
     TickType_t _totalPeriod;
 
     /// Provide content to stream
-    StreamingProvider _provider;
+    StreamingProvider *_provider;
 
     /// Manager Clients queue
     ClientManager _clientManager;

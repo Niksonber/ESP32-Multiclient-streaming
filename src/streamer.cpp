@@ -1,10 +1,20 @@
 #include "streamer.hpp"
 
-void Streamer::begin(uint8_t fps){
+void Streamer::begin(uint8_t fps, StreamingProvider *provider){
     _totalPeriod = pdMS_TO_TICKS(1000/fps);
     
+    if ( provider != nullptr ){
+        log_i("Getting provider");
+        _provider = provider;
+    } 
+    else{
+        log_i("Getting defaut provider");
+        _provider = new StreamingProvider;
+        return;
+    }
+
+    _provider->begin(fps);
     _clientManager.begin(333/fps);
-    _provider.begin(fps);
     run("streamer");
 }
 
@@ -15,9 +25,9 @@ void Streamer::_loop(){
         /// adjust the waiting time to serve all customers with the desired latency
         _period /= available;
         if( _clientManager.next() ){
-            _provider.waitAvailable();
-            _clientManager.send(_provider.buffer(), _provider.size());
-            _provider.release();
+            _provider->waitAvailable();
+            _clientManager.send(_provider->buffer(), _provider->size());
+            _provider->release();
         }
     }
 }
