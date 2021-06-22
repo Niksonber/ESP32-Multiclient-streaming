@@ -12,17 +12,18 @@ void CamProvider::begin(uint8_t fps){
         log_i("PSRAM found");
         psramInit();
         _config.frame_size = FRAMESIZE_XGA;
-        _config.jpeg_quality = 10;
+        _config.jpeg_quality = 15;
         _config.fb_count = 2;
     } else{
         log_i("PSRAM not found");
         _config.frame_size = FRAMESIZE_VGA;
-        _config.jpeg_quality = 12;
+        _config.jpeg_quality = 17;
         _config.fb_count = 1;
     }
     
     if( esp_camera_init(&_config) != ESP_OK ){
         log_e("Fail in camera init");
+        esp_restart();
     }
     
     _sensor = esp_camera_sensor_get();

@@ -53,6 +53,7 @@ void ClientManager::send(uint8_t * buffer, size_t size){
         }
     }
     delete _curretClient;
+    _curretClient = nullptr;
     log_i("Client will not return to queue");
 }
 

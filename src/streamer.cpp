@@ -14,8 +14,8 @@ void Streamer::begin(uint8_t fps, StreamingProvider *provider){
     }
 
     _provider->begin(fps);
-    _clientManager.begin(333/fps);
-    run("streamer");
+    _clientManager.begin(500);
+    run("streamer", 3);
 }
 
 void Streamer::on(const Uri &uri, WebServer::THandlerFunction fn, HTTPMethod method){
