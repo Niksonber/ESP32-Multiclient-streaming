@@ -2,7 +2,7 @@
 
 StreamingProvider::StreamingProvider(){
     for(uint8_t i = 0; i < PIPELINE_SIZE; i++){
-        _buffers[i] = (uint8_t *) malloc(_maxSize);
+        _buffers[i] = nullptr;
         _sizes[i] = 0;
     }
 }
@@ -55,17 +55,17 @@ void StreamingProvider::_loop(){
     
     if ( _getData(&buf, &size) ){
         /// Check available space
-        if ( size <= _maxSize ){
+        if ( size <= _maxSize[writeIndex] ){
             _sizes[writeIndex] = size;
         }else{
             _sizes[writeIndex] = size;
-            _maxSize = size;
+            _maxSize[writeIndex] = 1.3*size;
             /// if cannot reallocate, do nothing
             if( !reallocate(writeIndex) )
                 return;
         }
         /// Copy content
-        log_i("Allocated: %d, cpy %d", _maxSize,_sizes[writeIndex]);
+        // log_i("Allocated: %d, cpy %d", _maxSize,_sizes[writeIndex]);
         memcpy(_buffers[writeIndex], buf, _sizes[writeIndex]);
         
         /// Allows changes in data buffer
@@ -111,17 +111,13 @@ bool StreamingProvider::_getData(uint8_t ** ptr, size_t * size){
 }
 
 bool StreamingProvider::reallocate(uint8_t idx){
-    log_i("Realocating");
-    /// delete previus allocated buffer
-    delete[] _buffers[idx];
-    /// Check if there is available space in heap
-    try{
-        _buffers[idx] = new uint8_t [_sizes[idx]];
-    }catch( std::bad_alloc ){
-        /// Check if there is psram with suficient space then allocate
-        if ( psramFound() && _sizes[idx] < ESP.getFreePsram() ){
-            _buffers[idx] = (uint8_t *) ps_malloc(_sizes[idx]);
-        }
+    log_i("Realocating to %d", _maxSize[idx]);
+    portENTER_CRITICAL(&_mutex);
+    if ( psramFound() ){
+        _buffers[idx] = (uint8_t *) ps_realloc(_buffers[idx], _maxSize[idx]);
+    }else{
+        _buffers[idx] = (uint8_t *) realloc(_buffers[idx], _maxSize[idx]);
     }
+    portEXIT_CRITICAL(&_mutex);
     return _buffers[idx] != nullptr;
 }

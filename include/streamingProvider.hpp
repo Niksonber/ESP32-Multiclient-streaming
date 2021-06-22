@@ -44,7 +44,7 @@ protected:
     uint8_t * _buffers[PIPELINE_SIZE] = {nullptr};
     
     /// Maximum size
-    size_t _maxSize = 0;
+    size_t _maxSize[PIPELINE_SIZE] = {0};
 
     /// Avoid interruptons in buffer cange
     portMUX_TYPE _mutex;
