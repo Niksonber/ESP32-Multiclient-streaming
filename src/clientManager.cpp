@@ -9,11 +9,13 @@ const char *ClientManager::BOUNDARY = "\r\n\r\n--9999999999999999999999\r\n";
 const char *ClientManager::CONTENT_TYPE = "Content-Type: image/jpeg\r\nContent-Length:";
 
 WebServer ClientManager::_server;
+portMUX_TYPE ClientManager::_mutex;
 QueueHandle_t ClientManager::_clients;
 
 void ClientManager::begin(uint32_t period, uint16_t port){
     _server.begin(port);
     _period = pdMS_TO_TICKS(period);
+    _mutex = portMUX_INITIALIZER_UNLOCKED;
     _clients = xQueueCreate(CLIENT_NUMBER, sizeof(WiFiClient*));
 
     _curretClient = nullptr;
@@ -26,10 +28,17 @@ void ClientManager::begin(uint32_t period, uint16_t port){
 
 bool ClientManager::next(){
     /// recive next client
+    portENTER_CRITICAL(&_mutex);
     xQueueReceive(_clients, (void *) &_curretClient, 0);
+    portEXIT_CRITICAL(&_mutex);
+
     if ( _curretClient != nullptr && ! _curretClient->client.connected() ){
         log_i("Deleting client");
+
+        portENTER_CRITICAL(&_mutex);
         delete _curretClient;
+        portEXIT_CRITICAL(&_mutex);
+
         return false;
     }
     return true;
@@ -48,11 +57,16 @@ void ClientManager::send(uint8_t * buffer, size_t size){
             _curretClient->client.print(BOUNDARY);
 
             /// Put again client in the queue
+            portENTER_CRITICAL(&_mutex);
             xQueueSend(_clients, (void *) &_curretClient, 0);
+            portEXIT_CRITICAL(&_mutex);
             return;
         }
     }
+    portENTER_CRITICAL(&_mutex);
     delete _curretClient;
+    portEXIT_CRITICAL(&_mutex);
+
     _curretClient = nullptr;
     log_i("Client will not return to queue");
 }
@@ -74,7 +88,9 @@ void ClientManager::_registerUser(bool stream){
     /// Check if There is still space available
     if ( uxQueueSpacesAvailable(_clients) ){
         try{
+            portENTER_CRITICAL(&_mutex);
             client_t * handler = new client_t;
+            portEXIT_CRITICAL(&_mutex);
         
             handler->stream = stream;
             handler->client = _server.client();
@@ -84,7 +100,10 @@ void ClientManager::_registerUser(bool stream){
             if(stream) handler->client.printf("%s%s", HEADER, BOUNDARY);
 
             /// Add in client in queue
+            portENTER_CRITICAL(&_mutex);
             xQueueSend(_clients, (void *) &handler, 0);
+            portEXIT_CRITICAL(&_mutex);
+
             log_i("Clients in queue: %d", uxQueueMessagesWaiting(_clients));
         }catch(std::bad_alloc){
             log_i("Fail allocaation of Client");

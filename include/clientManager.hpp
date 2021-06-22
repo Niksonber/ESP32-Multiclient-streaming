@@ -51,6 +51,9 @@ protected:
     /// Queue of clients
     static QueueHandle_t _clients;
 
+    /// Avoid interruptons in buffer cange
+    static portMUX_TYPE _mutex;
+
     /// constants
     static const char *ADDR_STREAM;
     static const char *ADDR_SAMPLE;
