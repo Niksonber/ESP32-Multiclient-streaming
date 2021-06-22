@@ -1,10 +1,13 @@
 #pragma once
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include "FreeRTOSConfig.h"
 
 /// Mother class to Managers
 class Task{
 public:
+    /// Task name
+    const char * name;
     
     /// Create task that runs periodicaly principal method @param name name of task
     /// @param priority (optional) default 2, @param core (optinal) default 1
