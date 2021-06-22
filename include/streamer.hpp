@@ -11,6 +11,10 @@ public:
     /// @param fps Desired transmission rate 
     void begin(uint8_t fps, StreamingProvider * provider = nullptr);
 
+    /// Interface to client maneger server, adding routes in server
+    /// @param uri addres to route @param fn routine to router @param HTTP_METHOD (optional) Especify method to run this routine, defaut HTTP_ANY
+    void on(const Uri &uri, WebServer::THandlerFunction fn, HTTPMethod method = HTTP_ANY);
+
 protected:
     /// Stream to all available clients. To do this adequade sleep time to number of clients
     void _loop();

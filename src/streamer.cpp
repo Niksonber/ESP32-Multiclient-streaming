@@ -18,6 +18,10 @@ void Streamer::begin(uint8_t fps, StreamingProvider *provider){
     run("streamer");
 }
 
+void Streamer::on(const Uri &uri, WebServer::THandlerFunction fn, HTTPMethod method){
+    _clientManager._server.on(uri, method, fn);
+}
+
 void Streamer::_loop(){
     UBaseType_t available = _clientManager.available();
     _period = _totalPeriod;

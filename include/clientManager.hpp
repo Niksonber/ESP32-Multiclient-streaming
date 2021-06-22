@@ -59,4 +59,7 @@ protected:
     static const char *BOUNDARY;
     static const char *CONTENT_TYPE;
     static const uint8_t CLIENT_NUMBER = 10;
+
+    /// Streamer can acess protected atributes and methods
+    friend class Streamer;
 };
