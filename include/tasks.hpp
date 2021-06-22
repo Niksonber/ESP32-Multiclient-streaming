@@ -15,6 +15,12 @@ public:
 
     /// Ends Task
     void stop();
+    
+    // Suspend task
+    void suspend();
+
+    // Resume task
+    bool resume();
 
     /// Getter method for required stack size
     inline uint32_t size();
@@ -26,6 +32,9 @@ protected:
 
     /// Used to stop task
     bool _running =  true;
+
+    // Used to check status
+    bool _suspended =  false;
 
     /// Repetition period in ticks
     TickType_t _period;
