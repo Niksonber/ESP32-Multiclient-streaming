@@ -28,10 +28,14 @@ void Streamer::_loop(){
     if ( available ){
         /// adjust the waiting time to serve all customers with the desired latency
         _period /= available;
+        /// if provider is suspended wakeup and wait to capture a sample of stream
+        if ( _provider->resume() ) return;
         if( _clientManager.next() ){
             _provider->waitAvailable();
             _clientManager.send(_provider->buffer(), _provider->size());
             _provider->release();
         }
+    }else{
+        _provider->suspend();
     }
 }
