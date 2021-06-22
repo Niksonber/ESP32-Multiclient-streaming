@@ -34,11 +34,7 @@ bool ClientManager::next(){
 
     if ( _curretClient != nullptr && ! _curretClient->client.connected() ){
         log_i("Deleting client");
-
-        portENTER_CRITICAL(&_mutex);
         delete _curretClient;
-        portEXIT_CRITICAL(&_mutex);
-
         return false;
     }
     return true;
@@ -63,9 +59,7 @@ void ClientManager::send(uint8_t * buffer, size_t size){
             return;
         }
     }
-    portENTER_CRITICAL(&_mutex);
     delete _curretClient;
-    portEXIT_CRITICAL(&_mutex);
 
     _curretClient = nullptr;
     log_i("Client will not return to queue");
